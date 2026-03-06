@@ -1,0 +1,287 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ───────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  FACULTY
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+enum DisputeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ExamType {
+  MST1
+  MST2
+  FINAL
+}
+
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+// ─── BATCH ───────────────────────────────────────────────
+
+model Batch {
+  id        String   @id @default(uuid())
+  branch    String
+  semester  Int
+  section   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users      User[]   @relation("StudentBatch")
+  subjects   Subject[]
+  mentor     User?    @relation("BatchMentor")
+  timetables Timetable[]
+  posts      Post[]
+
+  @@unique([branch, semester, section])
+  @@index([branch])
+  @@index([semester])
+}
+
+// ─── USER ────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String?  @unique
+  password     String
+  role         Role
+  rollNumber   String?  @unique
+  facultyId    String?  @unique
+  isMentor     Boolean  @default(false)
+  mentorBatchId String? @unique
+  mentorBatch   Batch?  @relation("BatchMentor", fields: [mentorBatchId], references: [id])
+
+  batchId      String?
+  batch        Batch?   @relation("StudentBatch", fields: [batchId], references: [id])
+
+  phone        String?
+  bio          String?
+  isFirstLogin Boolean  @default(true)
+  isActivated  Boolean  @default(false)
+  otpHash      String?
+  otpExpiresAt DateTime?
+  otpAttempts  Int      @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  assignedSubjects    Subject[]           @relation("FacultySubjects")
+  attendanceSessions  AttendanceSession[]
+  attendanceRecords   AttendanceRecord[]
+  attendanceDisputes  AttendanceDispute[]
+  marks               Mark[]
+  authoredPosts       Post[]
+  comments            Comment[]
+  notifications       Notification[]
+
+  @@index([batchId])
+  @@index([role])
+}
+
+// ─── NOTIFICATION ────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─── SUBJECT ─────────────────────────────────────────────
+
+model Subject {
+  id        String   @id @default(uuid())
+  name      String
+  code      String
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id])
+  facultyId String?
+  faculty   User?    @relation("FacultySubjects", fields: [facultyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  timetables         Timetable[]
+  attendanceSessions AttendanceSession[]
+  marks              Mark[]
+
+  @@unique([code, batchId])
+  @@index([batchId])
+  @@index([facultyId])
+}
+
+// ─── TIMETABLE ───────────────────────────────────────────
+
+model Timetable {
+  id        String   @id @default(uuid())
+  day       Day
+  startTime String   // "09:00"
+  endTime   String   // "10:00"
+
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([batchId])
+  @@index([batchId, day])
+}
+
+// ─── ATTENDANCE SESSION ──────────────────────────────────
+
+model AttendanceSession {
+  id        String   @id @default(uuid())
+  date      DateTime @db.Date
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  facultyId String
+  faculty   User     @relation(fields: [facultyId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  records   AttendanceRecord[]
+
+  @@unique([subjectId, date])
+  @@index([date])
+  @@index([facultyId])
+}
+
+// ─── ATTENDANCE RECORD ───────────────────────────────────
+
+model AttendanceRecord {
+  id        String           @id @default(uuid())
+  status    AttendanceStatus
+  sessionId String
+  session   AttendanceSession @relation(fields: [sessionId], references: [id])
+  studentId String
+  student   User             @relation(fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  disputes  AttendanceDispute[]
+
+  @@unique([sessionId, studentId])
+  @@index([studentId])
+}
+
+// ─── ATTENDANCE DISPUTE ──────────────────────────────────
+
+model AttendanceDispute {
+  id        String        @id @default(uuid())
+  reason    String
+  status    DisputeStatus @default(PENDING)
+
+  recordId  String
+  record    AttendanceRecord @relation(fields: [recordId], references: [id])
+  studentId String
+  student   User             @relation(fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([recordId])
+}
+
+// ─── MARK ────────────────────────────────────────────────
+
+model Mark {
+  id        String   @id @default(uuid())
+  examType  ExamType
+  marks     Float
+
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id])
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, subjectId, examType])
+  @@index([studentId])
+  @@index([subjectId])
+}
+
+// ─── POST ────────────────────────────────────────────────
+
+model Post {
+  id          String    @id @default(uuid())
+  title       String
+  content     String
+  attachments String[]  @default([])
+  expiresAt   DateTime?
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  batchId     String?
+  batch       Batch?    @relation(fields: [batchId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  comments    Comment[]
+
+  @@index([batchId])
+  @@index([authorId])
+  @@index([expiresAt])
+}
+
+// ─── COMMENT ─────────────────────────────────────────────
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+}
