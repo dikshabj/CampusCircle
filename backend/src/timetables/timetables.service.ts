@@ -16,10 +16,25 @@ export class TimetablesService {
 
     async bulkImport(file: Express.Multer.File) {
         if (!file) throw new BadRequestException('No file uploaded');
-
-        const results: any[] = [];
         const stream = Readable.from(file.buffer);
+        return this.processCsvStream(stream);
+    }
 
+    async bulkImportLink(url: string) {
+        if (!url) throw new BadRequestException('No URL provided');
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
+            const text = await response.text();
+            const stream = Readable.from(text);
+            return this.processCsvStream(stream);
+        } catch (err) {
+            throw new BadRequestException(`Failed to import from link: ${err.message}`);
+        }
+    }
+
+    private async processCsvStream(stream: Readable) {
+        const results: any[] = [];
         await new Promise((resolve, reject) => {
             stream
                 .pipe(csv())
@@ -32,14 +47,12 @@ export class TimetablesService {
         const errors: string[] = [];
 
         for (const rawRow of results) {
-            // Trim all keys and values in the row to be robust
             const row: any = {};
             Object.keys(rawRow).forEach(key => {
                 row[key.trim().toLowerCase()] = rawRow[key]?.trim();
             });
 
             try {
-                // Now we can use lowercased keys: day, starttime, endtime, subjectname, subjectcode, branch, semester, section
                 const day = row.day?.toUpperCase();
                 const startTime = row.starttime;
                 const endTime = row.endtime;
@@ -55,81 +68,53 @@ export class TimetablesService {
                     continue;
                 }
 
-                // Validate day
                 const validDays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
                 if (!validDays.includes(day)) {
-                    errors.push(`Invalid day "${day}" for ${subjectCode}. Must be one of: ${validDays.join(', ')}`);
+                    errors.push(`Invalid day "${day}" for ${subjectCode}`);
                     continue;
                 }
 
-                // 1. Find or create batch
                 const batch = await this.prisma.batch.upsert({
                     where: { branch_semester_section: { branch, semester, section } },
                     update: {},
                     create: { branch, semester, section }
                 });
 
-                // 2. Find faculty (optional)
                 let facultyId: string | null = null;
                 if (facultyEmail) {
                     const faculty = await this.prisma.user.findUnique({ where: { email: facultyEmail } });
-                    if (faculty && faculty.role === 'FACULTY') {
-                        facultyId = faculty.id;
-                    }
+                    if (faculty && faculty.role === 'FACULTY') facultyId = faculty.id;
                 }
 
-                // 3. Find or create subject
                 const subject = await this.prisma.subject.upsert({
                     where: { code_batchId: { code: subjectCode, batchId: batch.id } },
                     update: facultyId ? { facultyId } : {},
-                    create: {
-                        name: subjectName,
-                        code: subjectCode,
-                        batchId: batch.id,
-                        facultyId
-                    }
+                    create: { name: subjectName, code: subjectCode, batchId: batch.id, facultyId }
                 });
 
-                // 4. Create timetable slot
-                // Use upsert or find/create to avoid duplicates if re-uploaded
                 const existingSlot = await this.prisma.timetable.findFirst({
-                    where: {
-                        day: day as any,
-                        startTime,
-                        batchId: batch.id
-                    }
+                    where: { day: day as any, startTime, batchId: batch.id }
                 });
 
                 if (!existingSlot) {
                     await this.prisma.timetable.create({
-                        data: {
-                            day: day as any,
-                            startTime,
-                            endTime,
-                            subjectId: subject.id,
-                            batchId: batch.id
-                        }
+                        data: { day: day as any, startTime, endTime, subjectId: subject.id, batchId: batch.id }
                     });
-                    count++;
                 } else {
-                    // Update existing slot if found
                     await this.prisma.timetable.update({
                         where: { id: existingSlot.id },
-                        data: {
-                            endTime,
-                            subjectId: subject.id
-                        }
+                        data: { endTime, subjectId: subject.id }
                     });
-                    count++;
                 }
+                count++;
             } catch (err) {
-                errors.push(`Failed for row: ${JSON.stringify(row)}. Error: ${err.message}`);
+                errors.push(`Error in row: ${err.message}`);
                 console.error('Import Row Error:', err);
             }
         }
 
         return {
-            message: `Successfully created ${count} timetable slots.`,
+            message: `Successfully processed ${count} slots.`,
             count,
             errors: errors.length > 0 ? errors : undefined
         };

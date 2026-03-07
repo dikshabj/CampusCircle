@@ -24,6 +24,12 @@ export class TimetablesController {
         return this.timetablesService.bulkImport(file);
     }
 
+    @Post('bulk-import-link')
+    @Roles('ADMIN')
+    async bulkImportLink(@Body('url') url: string) {
+        return this.timetablesService.bulkImportLink(url);
+    }
+
     @Get()
     @Roles('ADMIN', 'FACULTY', 'STUDENT')
     findAll(@Query('batchId') batchId?: string) {
