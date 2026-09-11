@@ -13,7 +13,7 @@ export class AuthController {
     async login(@Body() loginDto: LoginDto) {
         return this.authService.login(loginDto);
     }
-
+///http://localhost:3000/auth/request-otp
     @Post('request-otp')
     async requestOTP(@Body() dto: RequestOtpDto) {
         return this.authService.requestOTP(dto);

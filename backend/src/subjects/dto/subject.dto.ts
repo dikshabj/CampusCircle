@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsBoolean, Min, Max } from 'class-validator';
 
 export class CreateSubjectDto {
     @IsString()
@@ -16,6 +16,32 @@ export class CreateSubjectDto {
     @IsString()
     @IsOptional()
     facultyId?: string;
+
+    @IsInt()
+    @IsOptional()
+    @Min(1)
+    @Max(10)
+    priority?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    isDaily?: boolean;
+
+    @IsInt()
+    @IsOptional()
+    weeklyTarget?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    isLab?: boolean;
+
+    @IsString()
+    @IsOptional()
+    requiredLabName?: string;
+
+    @IsInt()
+    @IsOptional()
+    labGroupCount?: number;
 }
 
 export class UpdateSubjectDto {
@@ -30,4 +56,54 @@ export class UpdateSubjectDto {
     @IsString()
     @IsOptional()
     facultyId?: string;
+
+    @IsInt()
+    @IsOptional()
+    @Min(1)
+    @Max(10)
+    priority?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    isDaily?: boolean;
+
+    @IsInt()
+    @IsOptional()
+    weeklyTarget?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    isLab?: boolean;
+
+    @IsString()
+    @IsOptional()
+    requiredLabName?: string;
+
+    @IsInt()
+    @IsOptional()
+    labGroupCount?: number;
+}
+
+export class BulkUpdateSubjectDto {
+    @IsString()
+    @IsNotEmpty()
+    id: string;
+
+    @IsInt()
+    @IsOptional()
+    @Min(1)
+    @Max(10)
+    priority?: number;
+
+    @IsString()
+    @IsOptional()
+    facultyId?: string;
+
+    @IsBoolean()
+    @IsOptional()
+    isLab?: boolean;
+
+    @IsInt()
+    @IsOptional()
+    weeklyTarget?: number;
 }

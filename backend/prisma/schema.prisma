@@ -45,6 +45,11 @@ enum Day {
   SUNDAY
 }
 
+enum RoomType{
+  CLASSROOM
+  LAB
+}
+
 // ─── BATCH ───────────────────────────────────────────────
 
 model Batch {
@@ -65,6 +70,19 @@ model Batch {
   @@unique([branch, semester, section])
   @@index([branch])
   @@index([semester])
+}
+
+model Room{
+  id String @id @default(uuid())
+  name String
+  type RoomType
+  capacity Int @default(60)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  timetables Timetable[]
+
+  @@unique([name])
 }
 
 // ─── USER ────────────────────────────────────────────────
@@ -104,6 +122,7 @@ model User {
   authoredPosts       Post[]
   comments            Comment[]
   notifications       Notification[]
+  availability        FacultyAvailability[]  @relation("FacultyAvailability")
 
   @@index([batchId])
   @@index([role])
@@ -142,6 +161,15 @@ model Subject {
   attendanceSessions AttendanceSession[]
   marks              Mark[]
 
+  //new additions
+  priority Int @default(1)
+  isDaily Boolean @default(false)
+  weeklyTarget Int @default(3)
+  isLab Boolean @default(false)
+  requiredLabName String?
+  labGroupCount Int @default(1)
+
+
   @@unique([code, batchId])
   @@index([batchId])
   @@index([facultyId])
@@ -159,6 +187,10 @@ model Timetable {
   subject   Subject  @relation(fields: [subjectId], references: [id])
   batchId   String
   batch     Batch    @relation(fields: [batchId], references: [id])
+
+  roomId    String?
+  room      Room?    @relation(fields: [roomId], references: [id])
+  group     String   @default("ALL") // "ALL", "A", "B"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -253,6 +285,10 @@ model Post {
   content     String
   attachments String[]  @default([])
   expiresAt   DateTime?
+  
+  // Assignment fields
+  isAssignment Boolean   @default(false)
+  deadline     DateTime?
 
   authorId    String
   author      User      @relation(fields: [authorId], references: [id])
@@ -267,6 +303,7 @@ model Post {
   @@index([batchId])
   @@index([authorId])
   @@index([expiresAt])
+  @@index([deadline])
 }
 
 // ─── COMMENT ─────────────────────────────────────────────
@@ -284,4 +321,19 @@ model Comment {
 
   @@index([postId])
   @@index([authorId])
+}
+
+model FacultyAvailability{
+  id String @id @default(uuid())
+  facultyId String
+  faculty User @relation("FacultyAvailability",fields: [facultyId], references : [id], onDelete: Cascade)
+  day Day
+  isAvailable Boolean @default(true)
+  unavailableFrom String?
+  unavailableTo String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([facultyId , day])
+  @@index([facultyId])
 }

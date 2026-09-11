@@ -38,6 +38,12 @@ export class SubjectsController {
         return this.subjectsService.update(id, updateSubjectDto);
     }
 
+    @Post('bulk-update')
+    @Roles('ADMIN')
+    bulkUpdate(@Body() updates: any[]) {
+        return this.subjectsService.bulkUpdate(updates);
+    }
+
     @Delete(':id')
     @Roles('ADMIN')
     remove(@Param('id') id: string) {

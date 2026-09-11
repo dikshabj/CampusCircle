@@ -19,6 +19,13 @@ export class CreatePostDto {
 
     @IsOptional()
     files?: any;
+
+    @IsOptional()
+    isAssignment?: boolean | string;
+
+    @IsDateString()
+    @IsOptional()
+    deadline?: string;
 }
 
 export class UpdatePostDto {
@@ -40,4 +47,11 @@ export class UpdatePostDto {
 
     @IsOptional()
     files?: any;
+
+    @IsOptional()
+    isAssignment?: boolean | string;
+
+    @IsDateString()
+    @IsOptional()
+    deadline?: string;
 }

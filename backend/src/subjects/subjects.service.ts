@@ -67,6 +67,18 @@ export class SubjectsService {
         });
     }
 
+    async bulkUpdate(updates: any[]) {
+        return this.prisma.$transaction(
+            updates.map((update) => {
+                const { id, ...data } = update;
+                return this.prisma.subject.update({
+                    where: { id },
+                    data,
+                });
+            }),
+        );
+    }
+
     async remove(id: string) {
         return this.prisma.subject.delete({ where: { id } });
     }

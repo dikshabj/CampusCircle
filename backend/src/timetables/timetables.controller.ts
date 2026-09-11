@@ -60,4 +60,10 @@ export class TimetablesController {
         console.log(`[TimetableController] POST /timetables/save-ai`);
         return this.timetablesService.saveAiTimetable(data);
     }
+
+    @Post('generate/:batchId')
+    @Roles('ADMIN')
+    async generate(@Param('batchId') batchId: string) {
+        return this.timetablesService.generateSmartTimeTable(batchId);
+    }
 }

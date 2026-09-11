@@ -13,6 +13,9 @@ CREATE TYPE "ExamType" AS ENUM ('MST1', 'MST2', 'FINAL');
 -- CreateEnum
 CREATE TYPE "Day" AS ENUM ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY');
 
+-- CreateEnum
+CREATE TYPE "RoomType" AS ENUM ('CLASSROOM', 'LAB');
+
 -- CreateTable
 CREATE TABLE "Batch" (
     "id" TEXT NOT NULL,
@@ -23,6 +26,18 @@ CREATE TABLE "Batch" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Batch_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Room" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "type" "RoomType" NOT NULL,
+    "capacity" INTEGER NOT NULL DEFAULT 60,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Room_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -37,10 +52,29 @@ CREATE TABLE "User" (
     "isMentor" BOOLEAN NOT NULL DEFAULT false,
     "mentorBatchId" TEXT,
     "batchId" TEXT,
+    "phone" TEXT,
+    "bio" TEXT,
+    "isFirstLogin" BOOLEAN NOT NULL DEFAULT true,
+    "isActivated" BOOLEAN NOT NULL DEFAULT false,
+    "otpHash" TEXT,
+    "otpExpiresAt" TIMESTAMP(3),
+    "otpAttempts" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -52,6 +86,12 @@ CREATE TABLE "Subject" (
     "facultyId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "priority" INTEGER NOT NULL DEFAULT 1,
+    "isDaily" BOOLEAN NOT NULL DEFAULT false,
+    "weeklyTarget" INTEGER NOT NULL DEFAULT 3,
+    "isLab" BOOLEAN NOT NULL DEFAULT false,
+    "requiredLabName" TEXT,
+    "labGroupCount" INTEGER NOT NULL DEFAULT 1,
 
     CONSTRAINT "Subject_pkey" PRIMARY KEY ("id")
 );
@@ -64,6 +104,8 @@ CREATE TABLE "Timetable" (
     "endTime" TEXT NOT NULL,
     "subjectId" TEXT NOT NULL,
     "batchId" TEXT NOT NULL,
+    "roomId" TEXT,
+    "group" TEXT NOT NULL DEFAULT 'ALL',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -95,7 +137,7 @@ CREATE TABLE "AttendanceRecord" (
 -- CreateTable
 CREATE TABLE "AttendanceDispute" (
     "id" TEXT NOT NULL,
-    "message" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
     "status" "DisputeStatus" NOT NULL DEFAULT 'PENDING',
     "recordId" TEXT NOT NULL,
     "studentId" TEXT NOT NULL,
@@ -123,13 +165,41 @@ CREATE TABLE "Post" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
+    "attachments" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "expiresAt" TIMESTAMP(3),
+    "isAssignment" BOOLEAN NOT NULL DEFAULT false,
+    "deadline" TIMESTAMP(3),
     "authorId" TEXT NOT NULL,
     "batchId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Post_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Comment" (
+    "id" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "postId" TEXT NOT NULL,
+    "authorId" TEXT NOT NULL,
+
+    CONSTRAINT "Comment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "FacultyAvailability" (
+    "id" TEXT NOT NULL,
+    "facultyId" TEXT NOT NULL,
+    "day" "Day" NOT NULL,
+    "isAvailable" BOOLEAN NOT NULL DEFAULT true,
+    "unavailableFrom" TEXT,
+    "unavailableTo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FacultyAvailability_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -142,6 +212,9 @@ CREATE INDEX "Batch_semester_idx" ON "Batch"("semester");
 CREATE UNIQUE INDEX "Batch_branch_semester_section_key" ON "Batch"("branch", "semester", "section");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Room_name_key" ON "Room"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
@@ -151,10 +224,16 @@ CREATE UNIQUE INDEX "User_rollNumber_key" ON "User"("rollNumber");
 CREATE UNIQUE INDEX "User_facultyId_key" ON "User"("facultyId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_mentorBatchId_key" ON "User"("mentorBatchId");
+
+-- CreateIndex
 CREATE INDEX "User_batchId_idx" ON "User"("batchId");
 
 -- CreateIndex
 CREATE INDEX "User_role_idx" ON "User"("role");
+
+-- CreateIndex
+CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
 
 -- CreateIndex
 CREATE INDEX "Subject_batchId_idx" ON "Subject"("batchId");
@@ -210,8 +289,29 @@ CREATE INDEX "Post_authorId_idx" ON "Post"("authorId");
 -- CreateIndex
 CREATE INDEX "Post_expiresAt_idx" ON "Post"("expiresAt");
 
+-- CreateIndex
+CREATE INDEX "Post_deadline_idx" ON "Post"("deadline");
+
+-- CreateIndex
+CREATE INDEX "Comment_postId_idx" ON "Comment"("postId");
+
+-- CreateIndex
+CREATE INDEX "Comment_authorId_idx" ON "Comment"("authorId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FacultyAvailability_facultyId_day_key" ON "FacultyAvailability"("facultyId", "day");
+
+-- CreateIndex
+CREATE INDEX "FacultyAvailability_facultyId_idx" ON "FacultyAvailability"("facultyId");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_mentorBatchId_fkey" FOREIGN KEY ("mentorBatchId") REFERENCES "Batch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "Batch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Subject" ADD CONSTRAINT "Subject_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "Batch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -224,6 +324,9 @@ ALTER TABLE "Timetable" ADD CONSTRAINT "Timetable_subjectId_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "Timetable" ADD CONSTRAINT "Timetable_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "Batch"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Timetable" ADD CONSTRAINT "Timetable_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "Room"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AttendanceSession" ADD CONSTRAINT "AttendanceSession_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -254,3 +357,12 @@ ALTER TABLE "Post" ADD CONSTRAINT "Post_authorId_fkey" FOREIGN KEY ("authorId") 
 
 -- AddForeignKey
 ALTER TABLE "Post" ADD CONSTRAINT "Post_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "Batch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Comment" ADD CONSTRAINT "Comment_postId_fkey" FOREIGN KEY ("postId") REFERENCES "Post"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Comment" ADD CONSTRAINT "Comment_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FacultyAvailability" ADD CONSTRAINT "FacultyAvailability_facultyId_fkey" FOREIGN KEY ("facultyId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

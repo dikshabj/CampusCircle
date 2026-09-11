@@ -28,6 +28,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.15",
+    "@nestjs/schedule": "^6.1.1",
     "@prisma/client": "^6.19.2",
     "@prisma/pg-worker": "^6.9.0",
     "bcrypt": "^6.0.0",
@@ -93,5 +94,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }
