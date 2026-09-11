@@ -12,11 +12,32 @@ function StudentDashboard() {
   const [subjectsCount, setSubjectsCount] = useState(0);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [timetable, setTimetable] = useState([]);
+  const [ttLoading, setTtLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
     fetchPosts();
+    fetchTodaySchedule();
   }, []);
+
+  const fetchTodaySchedule = async () => {
+    if (!user.batchId) {
+      setTtLoading(false);
+      return;
+    }
+    try {
+      const res = await api.get(`/timetables?batchId=${user.batchId}`);
+      const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+      const now = new Date();
+      const currentDay = DAYS[now.getDay() === 0 ? 6 : now.getDay() - 1];
+      setTimetable(res.data.filter(e => e.day === currentDay).sort((a, b) => a.startTime.localeCompare(b.startTime)));
+    } catch (err) {
+      console.error('Failed to fetch timetable', err);
+    } finally {
+      setTtLoading(false);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -59,20 +80,10 @@ function StudentDashboard() {
 
   return (
     <>
-      <header className="top-header">
-        <h1 className="page-title">Dashboard</h1>
-        <div className="header-actions">
-          <NotificationBell />
-          <div className="header-avatar" onClick={() => setShowProfile(true)} title="Profile">
-            {user.name?.[0]?.toUpperCase() || 'S'}
-          </div>
-        </div>
-      </header>
-
       <div className="page-content animate-fade-in">
-        <div className="glass-card mb-xl" style={{
-          background: 'linear-gradient(135deg, rgba(52,211,153,0.08) 0%, rgba(30,30,42,0.9) 100%)',
-          borderLeft: '3px solid var(--accent-emerald)',
+        <div className="card mb-xl" style={{
+          background: 'linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(30,30,42,0.4) 100%)',
+          borderLeft: '4px solid var(--accent-emerald)',
         }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '6px' }}>
             Welcome back, {user.name || 'Student'}
@@ -125,6 +136,161 @@ function StudentDashboard() {
           </div>
         </div>
 
+        {/* Analytics Section */}
+        <div className="analytics-grid">
+          <div className="glass-card">
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)' }}>My Attendance</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xl)' }}>
+              <div 
+                className="circular-progress" 
+                style={{ 
+                  '--percent': `${attendancePct}%`,
+                  background: `conic-gradient(var(--primary-400) ${attendancePct * 3.6}deg, rgba(255,255,255,0.05) 0)`
+                }}
+              >
+                <span className="progress-value">{attendancePct}%</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.88rem' }}>
+                  {attendancePct >= 75 ? '🔥 Excellent!' : '⚠️ Needs Focus'}
+                </p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '4px', lineHeight: 1.4 }}>
+                  {attendancePct >= 75 
+                    ? 'You are above the 75% threshold. Keep it up!' 
+                    : `You are ${75 - attendancePct}% below the required attendance.`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card">
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)' }}>Performance Trend</h3>
+            <div className="chart-container" style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '140px' }}>
+              {[60, 85, 45, 90, 75, 95].map((h, i) => (
+                <div key={i} style={{ flex: 1, position: 'relative' }}>
+                  <div 
+                    className="bar-item" 
+                    style={{ 
+                      height: `${h}%`,
+                      background: i === 5 ? 'var(--primary-400)' : 'rgba(14,165,233,0.15)',
+                      border: i === 5 ? 'none' : '1px solid rgba(14,165,233,0.3)',
+                      borderRadius: '6px 6px 0 0',
+                      transition: 'height 1s ease'
+                    }}
+                  />
+                  <span style={{ 
+                    position: 'absolute', 
+                    top: '-20px', 
+                    left: '50%', 
+                    transform: 'translateX(-50%)', 
+                    fontSize: '0.65rem', 
+                    color: 'var(--text-muted)' 
+                  }}>{['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][i]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Today's Schedule Section */}
+        <div className="glass-card mb-xl">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <span style={{ color: 'var(--primary-400)' }}>{icons.calendar}</span>
+              Today's Schedule
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 10px', borderRadius: '12px' }}>
+              {new Date().toLocaleDateString('en-IN', { weekday: 'long' })}
+            </span>
+          </div>
+
+          {ttLoading ? (
+             <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', textAlign: 'center', padding: '20px' }}>Loading schedule...</p>
+          ) : timetable.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border-subtle)' }}>
+               <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0 }}>No classes scheduled for today. Enjoy! ☕</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {timetable.map((item, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '15px', 
+                  padding: '12px 16px', 
+                  background: 'var(--bg-elevated)', 
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-subtle)'
+                }}>
+                  <div style={{ 
+                    width: '70px', 
+                    fontSize: '0.85rem', 
+                    fontWeight: 700, 
+                    color: 'var(--primary-400)',
+                    borderRight: '1px solid var(--border-subtle)',
+                    paddingRight: '12px'
+                  }}>
+                    {item.startTime}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.subject?.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                       Room {item.room || 'TBD'} • {item.subject?.faculty?.name || 'TBD'}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', opacity: 0.6 }}>
+                    {item.endTime}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming Assignments */}
+        <div className="glass-card mb-xl">
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: 'var(--primary-400)' }}>{icons.edit}</span>
+            Pending Assignments
+          </h3>
+          {postsLoading ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>Loading assignments...</p>
+          ) : posts.filter(p => p.isAssignment && new Date(p.deadline) > new Date()).length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0 }}>All caught up! No pending assignments. ✨</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {posts.filter(p => p.isAssignment && new Date(p.deadline) > new Date()).map((item, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  padding: '12px', 
+                  background: 'var(--bg-elevated)', 
+                  borderRadius: '10px',
+                  borderLeft: '4px solid var(--primary-400)'
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{item.title}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Due: {new Date(item.deadline).toLocaleDateString()}</div>
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.7rem', 
+                    fontWeight: 800, 
+                    color: Math.ceil((new Date(item.deadline) - new Date()) / (1000 * 60 * 60 * 24)) <= 2 ? '#ff4d4d' : 'var(--accent-emerald)',
+                    background: 'rgba(255,255,255,0.05)',
+                    padding: '4px 8px',
+                    borderRadius: '8px'
+                  }}>
+                    {Math.ceil((new Date(item.deadline) - new Date()) / (1000 * 60 * 60 * 24))} days left
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Recent Announcements */}
         <div className="glass-card">
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -140,9 +306,9 @@ function StudentDashboard() {
               {posts.slice(0, 5).map(post => (
                 <div key={post.id} style={{
                   padding: 'var(--space-md)',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--bg-elevated)',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border-subtle)',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                     <div>

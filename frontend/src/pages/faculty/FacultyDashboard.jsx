@@ -12,11 +12,34 @@ function FacultyDashboard() {
   const [isMentor, setIsMentor] = useState(false);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [timetable, setTimetable] = useState([]);
+  const [ttLoading, setTtLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
     fetchPosts();
+    fetchTodaySchedule();
   }, []);
+
+  const fetchTodaySchedule = async () => {
+    try {
+      const [ttRes, subRes] = await Promise.all([
+        api.get('/timetables'),
+        api.get('/subjects'),
+      ]);
+      const mySubjectIds = new Set(subRes.data.map(s => s.id));
+      const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+      const now = new Date();
+      const currentDay = DAYS[now.getDay() === 0 ? 6 : now.getDay() - 1];
+      
+      const todayClasses = ttRes.data.filter(e => e.day === currentDay && mySubjectIds.has(e.subjectId));
+      setTimetable(todayClasses.sort((a, b) => a.startTime.localeCompare(b.startTime)));
+    } catch (err) {
+      console.error('Failed to fetch faculty timetable', err);
+    } finally {
+      setTtLoading(false);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -56,20 +79,10 @@ function FacultyDashboard() {
 
   return (
     <>
-      <header className="top-header">
-        <h1 className="page-title">Dashboard</h1>
-        <div className="header-actions">
-          <NotificationBell />
-          <div className="header-avatar" onClick={() => setShowProfile(true)} title="Profile">
-            {user.name?.[0]?.toUpperCase() || 'F'}
-          </div>
-        </div>
-      </header>
-
       <div className="page-content animate-fade-in">
-        <div className="glass-card mb-xl" style={{
-          background: 'linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(30,30,42,0.9) 100%)',
-          borderLeft: '3px solid var(--accent-sky)',
+        <div className="card mb-xl" style={{
+          background: 'linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(30,30,42,0.4) 100%)',
+          borderLeft: '4px solid var(--accent-sky)',
         }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '6px' }}>
             Welcome back, {user.name || 'Faculty'}
@@ -118,6 +131,64 @@ function FacultyDashboard() {
           </div>
         </div>
 
+        {/* Today's Schedule Section */}
+        <div className="card mb-xl">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <span style={{ color: 'var(--primary-400)' }}>{icons.calendar}</span>
+              Today's Teaching Schedule
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 10px', borderRadius: '12px' }}>
+              {new Date().toLocaleDateString('en-IN', { weekday: 'long' })}
+            </span>
+          </div>
+
+          {ttLoading ? (
+             <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', textAlign: 'center', padding: '20px' }}>Loading schedule...</p>
+          ) : timetable.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--border-subtle)' }}>
+               <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0 }}>No classes scheduled for today. Enjoy your break! ☕</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {timetable.map((item, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '15px', 
+                  padding: '12px 16px', 
+                  background: 'var(--bg-elevated)', 
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-subtle)'
+                }}>
+                  <div style={{ 
+                    width: '140px', 
+                    fontSize: '0.85rem', 
+                    fontWeight: 700, 
+                    color: 'var(--primary-400)',
+                    borderRight: '1px solid var(--border-subtle)',
+                    paddingRight: '12px'
+                  }}>
+                    {item.startTime} — {item.endTime}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.subject?.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                       {item.batch?.branch} (Sem {item.batch?.semester}, Sec {item.batch?.section})
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Room {item.room || 'TBD'}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Classroom</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Recent Announcements */}
         <div className="glass-card">
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -133,9 +204,9 @@ function FacultyDashboard() {
               {posts.slice(0, 5).map(post => (
                 <div key={post.id} style={{
                   padding: 'var(--space-md)',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--bg-elevated)',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border-subtle)',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                     <div>

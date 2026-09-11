@@ -17,6 +17,9 @@ function AdminTimetable() {
   const [importing, setImporting] = useState(false);
   const [toast, setToast] = useState(null);
   const [error, setError] = useState('');
+  const [importMode, setImportMode] = useState('file'); // 'file' or 'link'
+  const [sheetLink, setSheetLink] = useState('');
+  const [generating, setGenerating] = useState(false);
 
   // Form state
   const [day, setDay] = useState('MONDAY');
@@ -142,6 +145,47 @@ function AdminTimetable() {
     }
   };
 
+  const handleLinkImport = async (e) => {
+    e.preventDefault();
+    if (!sheetLink) return;
+    
+    // Simple logic: send link to backend or fetch frontend
+    // Google sheets publish link is actually a CSV
+    setImporting(true);
+    setToast(null);
+
+    try {
+      const res = await api.post('/timetables/bulk-import-link', { url: sheetLink });
+      setToast({ message: res.data.message, type: 'success' });
+      setShowImportModal(false);
+      setSheetLink('');
+      fetchInitialData();
+      if (selectedBatchId) fetchTimetable();
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Link import failed', type: 'error' });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedBatchId) return;
+    if (!window.confirm('This will delete the current timetable for this batch and generate a new one based on constraints. Continue?')) return;
+
+    setGenerating(true);
+    setToast(null);
+
+    try {
+      const res = await api.post(`/timetables/generate/${selectedBatchId}`);
+      setToast({ message: res.data.message, type: 'success' });
+      fetchTimetable();
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Generation failed', type: 'error' });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const groupTimetableByDay = () => {
     const grouped = {};
     DAYS.forEach(d => grouped[d] = []);
@@ -172,9 +216,17 @@ function AdminTimetable() {
               <option key={b.id} value={b.id}>{b.branch} {b.semester}/{b.section}</option>
             ))}
           </select>
-          <button className="btn btn-secondary" onClick={() => setShowImportModal(true)} style={{ gap: '8px' }}>
+          <button className="btn btn-secondary" onClick={() => { setImportMode('file'); setShowImportModal(true); }} style={{ gap: '8px' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Bulk Import
+            Standard CSV
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => { setImportMode('link'); setShowImportModal(true); }} 
+            style={{ gap: '8px', border: '1px solid var(--accent-amber)', color: 'var(--accent-amber)' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            Google Sheets
           </button>
           <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ gap: '8px' }}>
             {icons.calendar} Add Slot
@@ -183,6 +235,35 @@ function AdminTimetable() {
       </header>
 
       <div className="page-content animate-fade-in">
+        <div className="card" style={{ 
+          background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)', 
+          border: '1px solid var(--border-subtle)',
+          marginBottom: '24px',
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <div style={{ fontSize: '1.5rem' }}>💡</div>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontSize: '0.9rem', marginBottom: '2px' }}>Smart Scheduling Tip</h4>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Avoid manual entry! Use the <strong>Smart Generator</strong> to configure constraints and priorities for an optimized schedule instantly.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '6px 12px' }} onClick={() => window.location.href='/admin/manual-timetable'}>Go to Smart Generator</button>
+            <button 
+              className="btn btn-primary" 
+              style={{ fontSize: '0.75rem', padding: '6px 12px', background: 'var(--primary-600)' }} 
+              onClick={handleGenerate}
+              disabled={generating}
+            >
+              {generating ? 'Generating...' : 'Auto-Generate Now'}
+            </button>
+          </div>
+        </div>
+
         {!selectedBatchId ? (
           <div className="card" style={{ textAlign: 'center', padding: '60px' }}>
             <p>Select a batch to manage its timetable.</p>
@@ -355,29 +436,59 @@ function AdminTimetable() {
               <h3 className="modal-title">Bulk Import Timetable</h3>
               <button className="modal-close" onClick={() => { setShowImportModal(false); setImportFile(null); }}>{icons.close}</button>
             </div>
-            <form onSubmit={handleBulkImport}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
-                Upload a CSV with these headers:<br/>
-                <code style={{ fontSize: '0.75rem' }}>day, startTime, endTime, subjectName, subjectCode, facultyEmail, branch, semester, section</code>
-              </p>
               <div style={{ background: 'var(--bg-elevated)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                <strong style={{ color: 'var(--text-secondary)' }}>Example row:</strong><br/>
-                <code>MONDAY, 09:00, 10:00, Data Structures, CS201, faculty@email.com, CSE, 3, A</code><br/><br/>
-                <span style={{ color: 'var(--accent-emerald)' }}>✓</span> Batches are auto-created<br/>
-                <span style={{ color: 'var(--accent-emerald)' }}>✓</span> Subjects are auto-created<br/>
-                <span style={{ color: 'var(--accent-emerald)' }}>✓</span> Faculty assigned by email (optional)
+                <strong style={{ color: 'var(--text-secondary)' }}>Required headers:</strong><br/>
+                <code>day, startTime, endTime, subjectName, subjectCode, facultyEmail, branch, semester, section</code>
               </div>
-              <div className="form-group">
-                <label className="form-label">CSV File</label>
-                <input type="file" accept=".csv" className="form-input" onChange={(e) => setImportFile(e.target.files[0])} required />
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowImportModal(false); setImportFile(null); }} disabled={importing}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={importing || !importFile}>
-                  {importing ? 'Processing...' : 'Upload & Process'}
-                </button>
-              </div>
-            </form>
+
+              {importMode === 'file' ? (
+                <form onSubmit={handleBulkImport}>
+                   <div className="form-group">
+                    <label className="form-label">CSV File</label>
+                    <input type="file" accept=".csv" className="form-input" onChange={(e) => setImportFile(e.target.files[0])} required />
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn btn-secondary" onClick={() => { setShowImportModal(false); setImportFile(null); }} disabled={importing}>Cancel</button>
+                    <button type="submit" className="btn btn-primary" disabled={importing || !importFile}>
+                      {importing ? 'Processing...' : 'Upload & Process'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleLinkImport}>
+                   <div className="form-group">
+                    <label className="form-label">Google Sheet CSV URL</label>
+                    <input 
+                      type="url" 
+                      className="form-input" 
+                      placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv" 
+                      value={sheetLink}
+                      onChange={(e) => setSheetLink(e.target.value)}
+                      required 
+                    />
+                    <div style={{ 
+                      marginTop: '12px', 
+                      padding: '12px', 
+                      background: 'rgba(251, 191, 36, 0.05)', 
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      lineHeight: '1.4',
+                      color: 'var(--accent-amber)'
+                    }}>
+                      <strong>How to get the link:</strong><br/>
+                      1. In Google Sheets: <code>File {'>'} Share {'>'} Publish to Web</code><br/>
+                      2. Select <code>Link</code> and <code>Comma-separated values (.csv)</code><br/>
+                      3. Click <code>Publish</code> and copy the link here.
+                    </div>
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn btn-secondary" onClick={() => { setShowImportModal(false); setSheetLink(''); }} disabled={importing}>Cancel</button>
+                    <button type="submit" className="btn btn-primary" disabled={importing || !sheetLink}>
+                      {importing ? 'Connecting...' : 'Fetch & Sync'}
+                    </button>
+                  </div>
+                </form>
+              )}
           </div>
         </div>
       )}

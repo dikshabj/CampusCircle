@@ -11,6 +11,7 @@ import AdminTimetable from './pages/admin/AdminTimetable';
 import CommonPosts from './components/CommonPosts';
 import AdminUsers from './pages/admin/AdminUsers';
 import AiTimetableGenerator from './pages/admin/AiTimetableGenerator';
+import ManualTimetableGenerator from './pages/admin/ManualTimetableGenerator';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import FacultyAttendance from './pages/faculty/FacultyAttendance';
 import FacultyMarks from './pages/faculty/FacultyMarks';
@@ -33,7 +34,7 @@ const adminNav = [
   { path: '/admin/subjects', icon: icons.grades, label: 'Subjects' },
   { path: '/admin/users', icon: icons.users, label: 'Users' },
   { path: '/admin/timetable', icon: icons.calendar, label: 'Timetable' },
-  { path: '/admin/ai-timetable', icon: icons.sparkles, label: 'AI Generator' },
+  { path: '/admin/manual-timetable', icon: icons.sparkles, label: 'Smart Generator' },
   { path: '/admin/posts', icon: icons.megaphone, label: 'Posts' },
 ];
 
@@ -89,7 +90,7 @@ function App() {
           <Route path="subjects" element={<AdminSubjects />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="timetable" element={<AdminTimetable />} />
-          <Route path="ai-timetable" element={<AiTimetableGenerator />} />
+          <Route path="manual-timetable" element={<ManualTimetableGenerator />} />
           <Route path="posts" element={<CommonPosts role="ADMIN" />} />
         </Route>
 

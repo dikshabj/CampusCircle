@@ -16,6 +16,8 @@ function CommonPosts({ role }) {
   const [batchId, setBatchId] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [files, setFiles] = useState([]);
+  const [isAssignment, setIsAssignment] = useState(false);
+  const [deadline, setDeadline] = useState('');
 
   // Comments state
   const [commentInputs, setCommentInputs] = useState({});
@@ -56,6 +58,8 @@ function CommonPosts({ role }) {
     const formData = new FormData();
     formData.append('title', title);
     formData.append('content', content);
+    formData.append('isAssignment', isAssignment);
+    if (deadline) formData.append('deadline', deadline);
     if (batchId) formData.append('batchId', batchId);
     for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
@@ -95,6 +99,8 @@ function CommonPosts({ role }) {
     setTitle(post.title);
     setContent(post.content);
     setBatchId(post.batchId || '');
+    setIsAssignment(post.isAssignment || false);
+    setDeadline(post.deadline ? new Date(post.deadline).toISOString().split('T')[0] : '');
     setShowModal(true);
   };
 
@@ -114,6 +120,8 @@ function CommonPosts({ role }) {
     setTitle('');
     setContent('');
     setBatchId('');
+    setIsAssignment(false);
+    setDeadline('');
     setFiles([]);
     setError('');
   };
@@ -152,9 +160,15 @@ function CommonPosts({ role }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-md)' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', background: post.batchId ? 'rgba(59,130,246,0.1)' : 'rgba(239,68,68,0.1)', color: post.batchId ? 'var(--accent-sky)' : 'var(--primary-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          {post.batchId ? 'Batch Bound' : 'Global Update'}
+                        <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', background: post.isAssignment ? 'rgba(239,68,68,0.1)' : (post.batchId ? 'rgba(59,130,246,0.1)' : 'rgba(139,92,246,0.1)'), color: post.isAssignment ? 'var(--primary-400)' : (post.batchId ? 'var(--accent-sky)' : 'var(--primary-500)'), textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          {post.isAssignment ? 'Assignment' : (post.batchId ? 'Batch Bound' : 'Global Update')}
                         </span>
+                        {post.isAssignment && post.deadline && (
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ff4d4d' }}>
+                                Due: {new Date(post.deadline).toLocaleDateString()} 
+                                ({Math.ceil((new Date(post.deadline) - new Date()) / (1000 * 60 * 60 * 24))} days left)
+                            </span>
+                        )}
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                           {new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
@@ -303,6 +317,40 @@ function CommonPosts({ role }) {
                   </select>
                 </div>
               )}
+
+              <div className="form-group" style={{ background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isAssignment ? '15px' : 0 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Mark as Assignment?</label>
+                  <div 
+                    onClick={() => setIsAssignment(!isAssignment)}
+                    style={{ 
+                      width: '40px', height: '22px', borderRadius: '20px', 
+                      background: isAssignment ? 'var(--primary-500)' : 'var(--bg-elevated)',
+                      position: 'relative', cursor: 'pointer', transition: 'all 0.3s'
+                    }}
+                  >
+                    <div style={{ 
+                      width: '16px', height: '16px', borderRadius: '50%', background: 'white',
+                      position: 'absolute', top: '3px', left: isAssignment ? '21px' : '3px',
+                      transition: 'all 0.3s'
+                    }} />
+                  </div>
+                </div>
+
+                {isAssignment && (
+                   <div className="animate-fade-in">
+                      <label className="form-label">Submission Deadline</label>
+                      <input 
+                        type="date" 
+                        className="form-input" 
+                        value={deadline}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setDeadline(e.target.value)}
+                        required={isAssignment}
+                      />
+                   </div>
+                )}
+              </div>
 
               {error && (
                 <div style={{ color: 'var(--primary-400)', fontSize: '0.8rem', marginTop: '10px' }}>

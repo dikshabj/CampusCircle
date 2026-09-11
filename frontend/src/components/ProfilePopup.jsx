@@ -135,18 +135,18 @@ function ProfilePopup({ onClose }) {
   };
 
   return (
-    <div className="modal-backdrop" style={{ background: 'rgba(10,10,15,0.8)', backdropFilter: 'blur(8px)', zIndex: 9999 }}>
+    <div className="modal-backdrop" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 9999 }}>
       <div 
         ref={popupRef} 
         className="modal animate-slide-up" 
         style={{ 
           maxWidth: '440px', 
-          background: 'rgba(30,30,42,0.98)', 
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--bg-card)', 
+          border: '1px solid var(--border-default)',
           padding: 0,
           overflowY: 'auto',
           maxHeight: '90vh',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--shadow-xl)',
           position: 'relative'
         }}
       >
@@ -161,7 +161,7 @@ function ProfilePopup({ onClose }) {
               width: '90px',
               height: '90px',
               borderRadius: '24px',
-              border: '4px solid rgba(30,30,42,1)',
+              border: '4px solid var(--bg-card)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -231,7 +231,7 @@ function ProfilePopup({ onClose }) {
               </div>
 
               {user.batch && (
-                 <div className="form-group" style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                 <div className="form-group" style={{ padding: '12px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                     <label className="form-label" style={{ marginBottom: '8px', opacity: 0.6 }}>Academic Batch</label>
                     <div style={{ display: 'flex', gap: '20px', fontSize: '0.82rem' }}>
                       <span><strong>{user.batch.branch}</strong></span>
@@ -242,7 +242,7 @@ function ProfilePopup({ onClose }) {
               )}
 
               {/* Password Section */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 'var(--space-md)' }}>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-md)' }}>
                 {changingPass ? (
                   <form onSubmit={handlePasswordChange} className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
                     <div className="form-group">

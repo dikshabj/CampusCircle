@@ -15,6 +15,8 @@ function AdminUsers() {
   const [importFile, setImportFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [lastImportedUsers, setLastImportedUsers] = useState(null);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateData, setTemplateData] = useState({ branch: '', semester: '', section: '', count: 50 });
   const [toast, setToast] = useState(null);
 
   // Tab, Pagination & Search
@@ -131,6 +133,40 @@ function AdminUsers() {
     setLastImportedUsers(null);
   };
 
+  const handleGenerateTemplate = (e) => {
+    e.preventDefault();
+    const { branch, semester, section, count } = templateData;
+    const headers = ['name', 'email', 'rollNumber', 'branch', 'semester', 'section'];
+    const rows = [];
+    
+    for (let i = 1; i <= parseInt(count); i++) {
+        const num = i.toString().padStart(3, '0');
+        const roll = `${branch}${semester}${section}${num}`.toUpperCase();
+        rows.push([
+            '', // name placeholder
+            '', // email placeholder
+            roll,
+            branch.toUpperCase(),
+            semester,
+            section.toUpperCase()
+        ]);
+    }
+
+    const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `student_template_${branch}_${semester}${section}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setToast({ message: 'Template generated successfully!', type: 'success' });
+    setShowTemplateModal(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setToast(null);
@@ -212,6 +248,11 @@ function AdminUsers() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Bulk Import
           </button>
+          {activeTab === 'STUDENT' && (
+            <button className="btn btn-secondary" onClick={() => setShowTemplateModal(true)} style={{ gap: '8px', border: '1px dashed var(--border-subtle)' }}>
+              📄 Generate Template
+            </button>
+          )}
           <button className="btn btn-primary" onClick={openAddUser} style={{ gap: '8px' }}>
             {icons.users} Add {activeTab === 'STUDENT' ? 'Student' : 'Faculty'}
           </button>
@@ -566,6 +607,73 @@ function AdminUsers() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TEMPLATE MODAL ────────────────────────── */}
+      {showTemplateModal && (
+        <div className="modal-backdrop">
+          <div className="modal animate-slide-up" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Smart Template Generator</h3>
+              <button className="modal-close" onClick={() => setShowTemplateModal(false)}>{icons.close}</button>
+            </div>
+            <form onSubmit={handleGenerateTemplate}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
+                Generate a pre-filled CSV template for student enrollment. Use this to save 90% of your time!
+              </p>
+              
+              <div className="form-group">
+                <label className="form-label">Branch</label>
+                <input 
+                  className="form-input" 
+                  placeholder="e.g. CSE" 
+                  value={templateData.branch}
+                  onChange={e => setTemplateData({...templateData, branch: e.target.value})}
+                  required 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Semester</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={templateData.semester}
+                    onChange={e => setTemplateData({...templateData, semester: e.target.value})}
+                    required 
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Section</label>
+                  <input 
+                    className="form-input" 
+                    placeholder="A, B..." 
+                    value={templateData.section}
+                    onChange={e => setTemplateData({...templateData, section: e.target.value})}
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Number of Students</label>
+                <input 
+                  type="number" 
+                  className="form-input" 
+                  value={templateData.count}
+                  onChange={e => setTemplateData({...templateData, count: e.target.value})}
+                  required 
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowTemplateModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Generate & Download</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

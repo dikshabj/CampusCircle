@@ -71,42 +71,18 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-card animate-slide-up">
-        <div className="login-brand">
-          <div className="login-brand-icon" style={{ color: 'white' }}>
-            {icons.graduationCap}
-          </div>
-          <h1>CampusFeed</h1>
-          <p>Academic ERP — Smart Campus Management</p>
+        <div className="login-brand" style={{ marginBottom: 'var(--space-md)' }}>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: 0 }}><span>Campus</span>Feed</h1>
         </div>
 
         {/* Role Tabs */}
-        <div style={{
-          display: 'flex',
-          gap: '4px',
-          background: 'var(--bg-input)',
-          borderRadius: 'var(--radius-md)',
-          padding: '4px',
-          marginBottom: 'var(--space-xl)',
-        }}>
+        <div className="role-tabs">
           {['student', 'faculty', 'admin'].map((type) => (
             <button
               key={type}
               type="button"
+              className={`role-tab ${loginType === type ? 'active' : ''}`}
               onClick={() => { setLoginType(type); setIdentifier(''); setError(''); }}
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                border: 'none',
-                borderRadius: 'var(--radius-sm)',
-                background: loginType === type ? 'var(--gradient-primary)' : 'transparent',
-                color: loginType === type ? 'white' : 'var(--text-muted)',
-                fontFamily: 'var(--font-sans)',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 150ms ease',
-                textTransform: 'capitalize',
-              }}
             >
               {type}
             </button>

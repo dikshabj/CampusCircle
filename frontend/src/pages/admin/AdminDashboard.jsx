@@ -55,21 +55,11 @@ function AdminDashboard() {
 
   return (
     <>
-      <header className="top-header">
-        <h1 className="page-title">Dashboard</h1>
-        <div className="header-actions">
-          <NotificationBell />
-          <div className="header-avatar" onClick={() => setShowProfile(true)} title="Profile">
-            {user.name?.[0]?.toUpperCase() || 'A'}
-          </div>
-        </div>
-      </header>
-
       <div className="page-content animate-fade-in">
         {/* Welcome Banner */}
-        <div className="glass-card mb-xl" style={{
-          background: 'linear-gradient(135deg, rgba(220,38,38,0.08) 0%, rgba(30,30,42,0.9) 100%)',
-          borderLeft: '3px solid var(--primary-500)',
+        <div className="card mb-xl" style={{
+          background: 'linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(30,30,42,0.4) 100%)',
+          borderLeft: '4px solid var(--primary-500)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -79,9 +69,6 @@ function AdminDashboard() {
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
                 Manage your campus from one place. Start by creating batches, then add students and faculty.
               </p>
-            </div>
-            <div style={{ color: 'var(--primary-400)', opacity: 0.3 }}>
-              {icons.graduationCap}
             </div>
           </div>
         </div>
@@ -109,6 +96,61 @@ function AdminDashboard() {
           ))}
         </div>
 
+        {/* Analytics Section */}
+        <div className="analytics-grid mb-xl">
+          <div className="card">
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)' }}>Campus Distribution</h3>
+            <div className="chart-container" style={{ display: 'flex', alignItems: 'flex-end', gap: '15px', height: '160px' }}>
+              {[
+                { label: 'Students', val: 70, color: 'var(--primary-400)' },
+                { label: 'Faculty', val: 20, color: 'rgba(56, 189, 248, 0.4)' },
+                { label: 'Admin', val: 10, color: 'rgba(56, 189, 248, 0.2)' }
+              ].map((item, i) => (
+                <div key={i} style={{ flex: 1, position: 'relative' }}>
+                  <div 
+                    className="bar-item" 
+                    style={{ 
+                      height: `${item.val}%`, 
+                      background: item.color,
+                      borderRadius: '8px 8px 0 0'
+                    }}
+                  />
+                  <span style={{ 
+                    position: 'absolute', 
+                    top: '-20px', 
+                    left: '50%', 
+                    transform: 'translateX(-50%)', 
+                    fontSize: '0.7rem', 
+                    color: 'var(--text-muted)',
+                    whiteSpace: 'nowrap'
+                  }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)' }}>System Activity</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {[
+                { label: 'API Requests', val: 85 },
+                { label: 'Database Load', val: 40 },
+                { label: 'Auth Success', val: 95 }
+              ].map((row, i) => (
+                <div key={i}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{row.label}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600 }}>{row.val}%</span>
+                  </div>
+                  <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div style={{ width: `${row.val}%`, height: '100%', background: 'var(--primary-400)', borderRadius: '10px' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Quick Actions */}
         <div className="card">
           <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: 'var(--space-lg)', color: 'var(--text-primary)' }}>
@@ -130,18 +172,10 @@ function AdminDashboard() {
                   flexDirection: 'column',
                   gap: 'var(--space-sm)',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-focus)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
               >
                 <div style={{ color: 'var(--primary-400)' }}>{action.icon}</div>
-                <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{action.label}</div>
-                <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>{action.desc}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{action.label}</div>
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>{action.desc}</div>
               </div>
             ))}
           </div>
