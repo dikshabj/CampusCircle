@@ -1,22 +1,52 @@
-import { Controller, Post, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { AiService } from './ai.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { GenerateTimetableDto } from './dto/generate-timetable.dto';
 
 @Controller('ai')
-@UseGuards(JwtAuthGuard)
 export class AiController {
-    constructor(private readonly aiService: AiService) { }
+  constructor(private readonly aiService: AiService) {}
 
-    @Post('chat')
-    async chat(@Request() req, @Body('message') message: string) {
-        console.log(`[AiController] POST /ai/chat - User: ${req.user.sub}, Msg: ${message}`);
-        return this.aiService.getChatResponse(req.user.sub, message);
-    }
+  @Post('summarize')
+  async summarizeSkills(@Body('question') question: string) {
+    return await this.aiService.getAiSummary(question);
+  }
 
-    @Post('generate-timetable')
-    async generateTimetable(@Body() dto: GenerateTimetableDto) {
-        console.log(`[AiController] POST /ai/generate-timetable - Requesting for: ${dto.branch} Sem ${dto.semester}`);
-        return this.aiService.generateTimetable(dto);
+    // ==============================================================
+  // VECTOR DATABASE TEST ROUTE (PHASE 2)
+  // ==============================================================
+  
+
+  @Post('embed-test')
+  async testEmbedding(@Body() body: { text: string; type: string }) {
+    if (!body.text) {
+      return { error: "Text is required!" };
     }
+    
+    try {
+      const result = await this.aiService.saveAiDocument(
+        body.text, 
+        { type: body.type || 'TEST_DATA' }
+      );
+      return result;
+    } catch (e) {
+      return { error: e.message, stack: e.stack };
+    }
+  }
+
+    // ==============================================================
+  // SEARCH & SYNC ROUTES (PHASE 3)
+  // ==============================================================
+
+  @Post('sync-students')
+  async syncStudents() {
+    return await this.aiService.syncAllStudentsToVectorDB();
+  }
+
+  @Post('search-students')
+  async searchStudents(@Body('query') query: string) {
+    if (!query) {
+      return { error: "Query is required! Example: 'Find someone who knows React'" };
+    }
+    return await this.aiService.searchBestStudents(query);
+  }
+
 }
