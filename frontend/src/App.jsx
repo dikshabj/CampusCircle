@@ -10,8 +10,10 @@ import AdminSubjects from './pages/admin/AdminSubjects';
 import AdminTimetable from './pages/admin/AdminTimetable';
 import CommonPosts from './components/CommonPosts';
 import AdminUsers from './pages/admin/AdminUsers';
+import AiSummarizer from './pages/admin/AiSummarizer';
 import AiTimetableGenerator from './pages/admin/AiTimetableGenerator';
 import ManualTimetableGenerator from './pages/admin/ManualTimetableGenerator';
+import AiSearch from './pages/admin/AiSearch';
 import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import FacultyAttendance from './pages/faculty/FacultyAttendance';
 import FacultyMarks from './pages/faculty/FacultyMarks';
@@ -24,12 +26,15 @@ import StudentAttendance from './pages/student/StudentAttendance';
 import StudentMarks from './pages/student/StudentMarks';
 import StudentTimetable from './pages/student/StudentTimetable';
 import StudentDisputes from './pages/student/StudentDisputes';
+import StudentProfile from './pages/student/StudentProfile';
 import icons from './components/Icons';
 import './App.css';
 
 // Sidebar nav items per role — using SVG icons
 const adminNav = [
   { path: '/admin', icon: icons.dashboard, label: 'Dashboard' },
+  { path: '/admin/ai-search', icon: icons.search, label: 'AI Match-Maker' },
+  { path: '/admin/ai-summarizer', icon: icons.sparkles, label: 'AI Summarizer' },
   { path: '/admin/batches', icon: icons.batch, label: 'Batches' },
   { path: '/admin/subjects', icon: icons.grades, label: 'Subjects' },
   { path: '/admin/users', icon: icons.users, label: 'Users' },
@@ -50,6 +55,7 @@ const facultyNav = [
 
 const studentNav = [
   { path: '/student', icon: icons.dashboard, label: 'Dashboard' },
+  { path: '/student/profile', icon: icons.user, label: 'My Skills' },
   { path: '/student/attendance', icon: icons.check, label: 'Attendance' },
   { path: '/student/timetable', icon: icons.calendar, label: 'Timetable' },
   { path: '/student/marks', icon: icons.grades, label: 'Marks' },
@@ -89,6 +95,8 @@ function App() {
           <Route path="batches" element={<AdminBatches />} />
           <Route path="subjects" element={<AdminSubjects />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="ai-summarizer" element={<AiSummarizer />} />
+          <Route path="ai-search" element={<AiSearch />} />
           <Route path="timetable" element={<AdminTimetable />} />
           <Route path="manual-timetable" element={<ManualTimetableGenerator />} />
           <Route path="posts" element={<CommonPosts role="ADMIN" />} />
@@ -120,6 +128,7 @@ function App() {
           }
         >
           <Route index element={<StudentDashboard />} />
+          <Route path="profile" element={<StudentProfile />} />
           <Route path="attendance" element={<StudentAttendance />} />
           <Route path="marks" element={<StudentMarks />} />
           <Route path="disputes" element={<StudentDisputes />} />

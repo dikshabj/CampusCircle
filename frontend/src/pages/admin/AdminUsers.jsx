@@ -34,6 +34,7 @@ function AdminUsers() {
   const [batchId, setBatchId] = useState('');
   const [isMentor, setIsMentor] = useState(false);
   const [mentorBatchId, setMentorBatchId] = useState('');
+  const [hasAiAccess, setHasAiAccess] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
@@ -177,6 +178,7 @@ function AdminUsers() {
       facultyId: role === 'FACULTY' ? facultyId : undefined,
       batchId: role === 'STUDENT' ? batchId : undefined,
       isMentor: role === 'FACULTY' ? isMentor : undefined,
+      hasAiAccess: role === 'FACULTY' ? hasAiAccess : undefined,
       mentorBatchId: (role === 'FACULTY' && isMentor) ? mentorBatchId : null
     };
 
@@ -204,6 +206,7 @@ function AdminUsers() {
     setFacultyId(user.facultyId || '');
     setBatchId(user.batchId || '');
     setIsMentor(user.isMentor || false);
+    setHasAiAccess(user.hasAiAccess || false);
     setMentorBatchId(user.mentorBatchId || '');
     setPassword('');
     setShowModal(true);
@@ -225,7 +228,7 @@ function AdminUsers() {
     setEditingId(null);
     setName(''); setEmail(''); setPassword('');
     setRollNumber(''); setFacultyId(''); setBatchId('');
-    setIsMentor(false); setMentorBatchId('');
+    setIsMentor(false); setMentorBatchId(''); setHasAiAccess(false);
   };
 
   const openAddUser = () => {
@@ -348,6 +351,7 @@ function AdminUsers() {
                     <th>Name</th>
                     <th>{activeTab === 'STUDENT' ? 'Roll Number' : 'Faculty ID'}</th>
                     <th>{activeTab === 'STUDENT' ? 'Batch' : 'Mentor'}</th>
+                    {activeTab === 'FACULTY' && <th>AI Access</th>}
                     <th>Status</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
@@ -372,6 +376,13 @@ function AdminUsers() {
                             : <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>—</span>)
                         }
                       </td>
+                      {activeTab === 'FACULTY' && (
+                        <td>
+                          {u.hasAiAccess 
+                            ? <span style={{ background: 'rgba(14,165,233,0.1)', color: 'var(--primary-400)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>✨ Granted</span>
+                            : <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>None</span>}
+                        </td>
+                      )}
                       <td>
                         <span style={{
                           padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700,
@@ -508,6 +519,10 @@ function AdminUsers() {
                   <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
                     <input type="checkbox" id="isMentor" checked={isMentor} onChange={(e) => setIsMentor(e.target.checked)} />
                     <label className="form-label" htmlFor="isMentor" style={{ marginBottom: 0 }}>Assign as Class Mentor</label>
+                  </div>
+                  <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                    <input type="checkbox" id="hasAiAccess" checked={hasAiAccess} onChange={(e) => setHasAiAccess(e.target.checked)} />
+                    <label className="form-label" htmlFor="hasAiAccess" style={{ marginBottom: 0, color: 'var(--primary-400)', fontWeight: 600 }}>Grant AI Summarizer Access ✨</label>
                   </div>
                   {isMentor && (
                     <div className="form-group">
